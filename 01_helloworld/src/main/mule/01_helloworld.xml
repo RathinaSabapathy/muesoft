@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="68eea2f1-ef3c-4a5a-a9ec-7c7ca037513d" basePath="/" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="01_helloworldFlow" doc:id="9dffaf93-9fe2-48a6-9534-825c7342ca72" >
+		<http:listener doc:name="Listener" doc:id="afafa7ac-3674-4322-b47d-a74352e3c9b8" config-ref="HTTP_Listener_config" path="hello" outputMimeType="application/csv"/>
+		<choice doc:name="Choice" doc:id="aad41b61-6618-4fd7-882d-4986fb39728b" >
+			<when expression="#[attributes.queryParams.name != '']">
+				<set-payload value="#['Hello ' ++ attributes.queryParams.name]" doc:name="Set Payload" doc:id="ccaac9ba-d49b-46d9-8339-1ecd20a06d93" />
+			</when>
+			<otherwise >
+				<set-payload value="#['Hello There']" doc:name="Set Payload" doc:id="9e18948f-e1cf-494e-99c7-6e922a20dadd" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="dd6622ac-0867-4101-b141-80aebeb2eca3" message="#[payload]" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="aec4bd1c-2dba-46b8-9feb-f04301d4c872" type="EXPRESSION">
+				<raise-error doc:name="Raise error" doc:id="389fd298-f52f-4456-9ca4-313047eecbc9" description="Invalid input" type="ANY"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
