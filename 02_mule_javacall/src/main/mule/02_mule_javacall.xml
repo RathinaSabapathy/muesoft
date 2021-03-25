@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="25bbc159-9163-4595-9b36-e7b9392b9bfa" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="02_mule_javacall_Static" doc:id="e7e76673-3290-43b1-ae5a-f790e395157f" >
+		<http:listener doc:name="Listener" doc:id="bb1c10ac-732b-4714-b5a6-d229efa83944" config-ref="HTTP_Listener_config" path="/quoteS"/>
+		<java:invoke-static method="sayHello(java.lang.String,java.lang.String)" doc:name="Invoke static" doc:id="a34986ea-eb3f-451c-8547-8b08ad0973fc" class="com.sample.java.StockQuoteService" target="greetingVar">
+			<java:args ><![CDATA[#[{
+name: attributes.queryParams.name,
+city: attributes.queryParams.city
+}]]]></java:args>
+		</java:invoke-static>
+		<set-payload value="#[vars.greetingVar]" doc:name="Set Payload" doc:id="57900f4b-e460-4d29-b494-f9387ccad6f6" />
+		<logger level="INFO" doc:name="Logger" doc:id="84645c56-ef37-4810-9232-36b3c037c20c" message="#[payload]"/>
+	</flow>
+	<flow name="02_mule_javacall_NonStatic" doc:id="f6dd1cc2-0c19-47af-b8d2-471366362adc" >
+		<http:listener doc:name="Listener" doc:id="b89b8a80-c1d1-453c-93e8-ef4219cca960" config-ref="HTTP_Listener_config" path="/quoteNS"/>
+		<java:new doc:name="New" doc:id="ff65ce1c-0ba4-4a86-9a6b-d0df8ddbe577" class="com.sample.java.StockQuoteService" constructor="StockQuoteService()" target="stockQS"/>
+		<java:invoke doc:name="Invoke" doc:id="34e775ba-3428-40a1-a9e3-48bfc7671c4f" instance="#[vars.stockQS]" class="com.sample.java.StockQuoteService" method="getStockQuote(java.lang.String)" target="stockdetailVar">
+			<java:args ><![CDATA[#[{
+	stockName: attributes.queryParams.stock
+}]]]></java:args>
+		</java:invoke>
+		<set-payload value="#[vars.stockdetailVar]" doc:name="Set Payload" doc:id="00a97e49-b52f-409c-96ba-61960d6a5199" />
+		<logger level="INFO" doc:name="Logger" doc:id="566e9d8e-0431-43f0-9b56-4c4065c6cf30" message="#[payload]"/>
+	</flow>
+</mule>
