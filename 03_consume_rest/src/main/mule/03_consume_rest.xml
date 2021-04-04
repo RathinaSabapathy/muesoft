@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="dc8b0534-3a4c-41ce-8d61-085719e20193" basePath="/rest">
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7424eca5-ec6c-435c-828b-c9400cc35447">
+		<http:request-connection host="localhost" port="8800" />
+	</http:request-config>
+	<flow name="03_consume_restFlow" doc:id="02a53954-4217-46e4-b106-4e5f733474b2" >
+		<http:listener doc:name="Listener" doc:id="2fe96f24-46cf-4387-943c-ce2a5cb21801" config-ref="HTTP_Listener_config" path="/courses"/>
+		<set-variable value="#[attributes.method]" doc:name="setHttpMethodVar" doc:id="b5cc3183-2242-423a-9777-c862bcb5437c" variableName="httpMethodVar"/>
+		<set-variable value="#[attributes.queryParams.name]" doc:name="setCourseNameVar" doc:id="7f328ee8-e7c9-42bf-999d-f66e2cbc4667" variableName="courseNameVar"/>
+		<choice doc:name="Choice" doc:id="6c247fbe-3f19-4eb9-aae1-033dd6526b3c" >
+			<when expression="#[vars.httpMethodVar == 'GET']">
+				<flow-ref doc:name="getAllCourses" doc:id="4489dac2-b758-48f7-a232-de6efc759e79" name="consume_getCourse"/>
+			</when>
+			<when expression="#[vars.httpMethodVar == 'POST' or vars.httpMethodVar =='PUT']">
+				<flow-ref doc:name="upsert_Course" doc:id="79c78210-7487-4f53-8885-9e91faf50129" name="upsert_Course"/>
+			</when>
+			<otherwise >
+				<set-payload value="#[{
+	message: 'Please select correct method'
+}]" doc:name="Set Payload" doc:id="6960ee12-e383-4264-8abb-a481b13e5a93" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="373efc6e-d3d8-43a1-9ca7-f55450b78126" message="#[vars.httpMethodVar]"/>
+	</flow>
+	<flow name="consume_getCourse" doc:id="8cd76336-86a9-495c-9288-7f444f98f461" >
+		<choice doc:name="Choice" doc:id="a154d0ad-02a5-459d-bba2-4ee5ae824fee" >
+			<when expression="#[vars.courseNameVar != null]">
+				<http:request method="GET" doc:name="Request" doc:id="3bebd50f-f2e1-423f-b92d-7372a72dbe1c" config-ref="HTTP_Request_configuration" path="/courses/{courseName}">
+					<http:uri-params><![CDATA[#[output application/java
+---
+{
+	courseName : vars.courseNameVar
+}]]]></http:uri-params>
+				</http:request>
+			</when>
+			<otherwise >
+				<http:request method="GET" doc:name="Request" doc:id="cdd9aea9-d8f9-4b60-8409-4616afffdf76" config-ref="HTTP_Request_configuration" path="/courses" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="43625f47-8477-4508-95a0-416ea5f944c1" message="#[payload]"/>
+	</flow>
+	<flow name="upsert_Course" doc:id="66e039b6-5f81-4402-8e35-3fa29d38e75c" >
+		<choice doc:name="Choice" doc:id="914c7181-5d1a-4772-9db6-47a27eb432a3" >
+			<when expression="#[vars.httpMethodVar == 'POST']">
+				<http:request method="POST" doc:name="Request" doc:id="d7c2e5a0-bdc3-413a-adf1-c29582c151d1" config-ref="HTTP_Request_configuration" path="/courses" />
+			</when>
+			<otherwise >
+				<http:request method="PUT" doc:name="Request" doc:id="825b1f0e-7a00-4eda-b212-2b017a6743a3" config-ref="HTTP_Request_configuration" path="/courses/{courseName}">
+					<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	courseName : vars.courseNameVar
+}]]]></http:uri-params>
+				</http:request>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
