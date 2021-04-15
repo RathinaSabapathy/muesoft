@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="pNameVar" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="addProductRequestVar" format="xml">
+      <types:example format="xml" element="{http//way2learnonline.com/domain}addProductRequest" location="examples/addProduct.xml"/>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#ba5b2aca-4226-4e8a-93eb-376d78341777">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:attributes type="pNameVar"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#98867514-994e-47fd-8055-c31fd563ed9e">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="addProductRequestVar"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

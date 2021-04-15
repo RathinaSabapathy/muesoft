@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ab2057e2-f428-427f-9355-ff27455a2cf8" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="4de4600c-5412-4d56-a9e6-8866930e99e1" >
+		<wsc:connection wsdlLocation="wsdl\Products.wsdl" service="ProductServicePortService" port="ProductServicePortSoap11" address="http://localhost:6060/soap/ws" />
+	</wsc:config>
+	<flow name="03_consume_soapFlow" doc:id="a8a1d49c-18fa-490d-9e3a-c17b08297aae" >
+		<http:listener doc:name="Listener" doc:id="79b2c35b-6580-4718-a0c0-72020a18ba9a" config-ref="HTTP_Listener_config" path="/products"/>
+		<set-variable value="#[attributes.queryParams.pname]" doc:name="Set Variable" doc:id="ca4411c1-840d-416f-8e02-0acb759ce95e" variableName="pNameVar"/>
+		<set-variable value="#[attributes.method]" doc:name="Set Variable" doc:id="97281748-f99f-4a24-a352-7b9ab46f9b52" variableName="httpMethodVar"/>
+		<choice doc:name="Choice" doc:id="a22d4d80-21ae-455d-a56f-81d5a36d3746" >
+			<when expression="#[vars.httpMethodVar == 'GET' and vars.pNameVar == null]" >
+				<flow-ref doc:name="getAllProducts" doc:id="1d3a5635-af0f-44ee-ac5d-84ecf49190fe" name="consume_getAllProducts" />
+			</when>
+			<when expression="#[vars.httpMethodVar == 'GET' and vars.pNameVar != null]">
+				<flow-ref doc:name="getProductByName" doc:id="83b99eec-1a34-425e-8914-bb3bfbe9960a" name="consume_GetProductsByName"/>
+			</when>
+			<when expression="#[vars.httpMethodVar == 'POST']">
+				<flow-ref doc:name="AddProduct" doc:id="06b9321c-090b-4787-96ef-2dd72f1e7c3b" name="consume_AddProduct"/>
+			</when>
+			<otherwise >
+				<set-payload value="#['Invalid input payload']" doc:name="Set Payload" doc:id="b3d66c54-fe2b-4b1e-99f6-0155eb3a3da8" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="consume_getAllProducts" doc:id="66848c6f-d1b6-498f-85dd-228026eaaf64" >
+		<wsc:consume doc:name="ConsumeSOAP" doc:id="955e6099-93de-4d70-a60b-0ad4651ee631" config-ref="Web_Service_Consumer_Config" operation="getAllProducts">
+			<wsc:message>
+				<wsc:body ><![CDATA[#[output application/xml
+ns ns0 http//way2learnonline.com/domain
+---
+{
+	ns0#getAllProductsRequest: null
+}]]]></wsc:body>
+			</wsc:message>
+		</wsc:consume>
+		<ee:transform doc:name="Transform Message" doc:id="0db9ad40-db94-439f-a17c-369b22b184f7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+payload.body.getAllProductsResponse
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7b50642d-de8d-4b08-a70b-f75fd212fe34" message="#[payload]"/>
+	</flow>
+	<flow name="consume_GetProductsByName" doc:id="df180ec0-614b-4937-a6f8-284f5852795a" >
+		<wsc:consume operation="getProductsByName" doc:name="ConsumeSOAP" doc:id="ba5b2aca-4226-4e8a-93eb-376d78341777" config-ref="Web_Service_Consumer_Config">
+			<wsc:message >
+				<wsc:body ><![CDATA[#[output application/xml
+ns ns0 http//way2learnonline.com/domain
+---
+{
+	ns0#getProductsByNameRequest: {
+		name: vars.pNameVar
+	}
+}]]]></wsc:body>
+			</wsc:message>
+		</wsc:consume>
+		<ee:transform doc:name="Transform Message" doc:id="6480af43-54d1-4979-9ce6-73fd20681224" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+payload.body.getProductsByNameResponse]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="consume_AddProduct" doc:id="1138191d-cd8d-4501-9eaa-690f9ca10f48" >
+		<wsc:consume doc:name="Consume" doc:id="98867514-994e-47fd-8055-c31fd563ed9e" config-ref="Web_Service_Consumer_Config" operation="addProduct">
+			<wsc:message >
+				<wsc:body ><![CDATA[#[output application/xml
+ns ns0 http//way2learnonline.com/domain
+---
+{
+	ns0#addProductRequest: {
+		product: {
+			brandName: payload.product.brandName,
+			description: payload.product.description,
+			images: payload.product.images,
+			name: payload.product.name,
+			offer: {
+				offerPrice: payload.product.offer.offerPrice,
+				offerValidUntil: payload.product.offer.offerValidUntil
+			},
+			originalPrice: payload.product.originalPrice,
+			productId: payload.product.productId
+		}
+	}
+}]]]></wsc:body>
+			</wsc:message>
+		</wsc:consume>
+		<logger level="INFO" doc:name="Logger" doc:id="fc0c01ed-0c2c-4e1a-9a06-7740d58285de" message="#[payload]"/>
+	</flow>
+</mule>

@@ -1,0 +1,22 @@
+<dom:addProductRequest xmlns:dom="http//way2learnonline.com/domain">
+	<product>
+		<brandName></brandName>
+		<!--Optional: -->
+		<description></description>
+		<images>
+			<!--Zero or more repetitions: -->
+			<image></image>
+		</images>
+		<!--Optional: -->
+		<name></name>
+		<!--Optional: -->
+		<offer>
+			<offerPrice></offerPrice>
+			<!--Optional: -->
+			<offerValidUntil></offerValidUntil>
+		</offer>
+		<originalPrice></originalPrice>
+		<!--Optional: -->
+		<productId></productId>
+	</product>
+</dom:addProductRequest>
