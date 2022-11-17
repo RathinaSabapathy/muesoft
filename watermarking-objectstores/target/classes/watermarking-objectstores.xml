@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<os:object-store name="DevObjectStore" doc:name="Object store" doc:id="44435c7e-ed2c-4d24-b39a-1090eb21e8e3" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="21568bd1-1aeb-4e6a-86f8-0e3597b1232e" >
+		<db:oracle-connection host="${secure::db.host}" port="${secure::db.port}" user="${secure::db.username}" password="${secure::db.password}" serviceName="XE" />
+	</db:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="3df381bc-a63f-4d23-9efe-6d2caa6565e2" file="db-secure-dev.yaml" key="abcdefghijklmnop">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<flow name="watermarking-objectstoresFlow" doc:id="5bbd2fb8-cdad-401d-9d95-eccbcd60a9aa" >
+		<scheduler doc:name="Scheduler" doc:id="7503cc0c-12fa-4acd-a445-6100d3ed64db" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="2" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<os:retrieve doc:name="RetriveStudentId" doc:id="84a3b26d-048b-4fea-bdac-8330168bf28e" key="laststudentid" objectStore="DevObjectStore" target="laststudentid">
+			<os:default-value ><![CDATA[0]]></os:default-value>
+		</os:retrieve>
+		<logger level="INFO" doc:name="Logger" doc:id="50d3ad0d-3052-45c8-acf4-8fae988ebf7a" message="#[payload]"/>
+		<db:select doc:name="Select" doc:id="20e7879c-d65c-4b7e-a75f-632a421b0ea1" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from students where student_id >:laststudentid]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	laststudentid: vars.laststudentid as String
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger-DBSelect" doc:id="52121d06-ddd3-4309-8f3a-6d6c72df576f" message="#[payload]"/>
+		<choice doc:name="Choice" doc:id="8a7e602e-c939-449e-8b5b-18ad405a7ab5" >
+			<when expression="#[not isEmpty(payload)]">
+				<ee:transform doc:name="Transform Message" doc:id="f6da2a98-234b-40d0-89d8-c8a4000377c4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[payload]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="80b666ed-8632-4380-a668-bd1bba0d6c87" message="#[payload]"/>
+				<os:store doc:name="Store" doc:id="9a320ee2-6e87-4598-903c-9ecffb88b293" key="laststudentid" objectStore="DevObjectStore">
+					<os:value ><![CDATA[#[payload.STUDENT_ID]]]></os:value>
+				</os:store>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="9ee07745-f8f0-47c7-ad56-98c645012345" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
