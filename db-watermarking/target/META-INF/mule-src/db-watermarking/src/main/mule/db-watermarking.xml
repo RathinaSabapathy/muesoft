@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="66af0f14-1875-47c1-983a-3eeee6818553" >
+		<db:oracle-connection host="${secure::db.host}" port="${secure::db.port}" user="${secure::db.username}" password="${secure::db.password}" serviceName="XE" />
+	</db:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="fae64539-ad9d-4a8a-9cfd-1d04b2e4c4ea" file="db-secure-dev.yaml" key="abcdefghijklmnop" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="b3088874-f977-4202-a8c9-27ec56629188" >
+		<file:connection workingDir="C:\Saba\learnings\mulesoft\file\output" />
+	</file:config>
+	<flow name="db-watermarkingFlow" doc:id="955f12eb-1a89-4f40-a650-e9698be6f2bf" >
+		<db:listener doc:name="On Table Row" doc:id="5e8f6a44-f818-4dfc-a0c8-2ae4abb4bb6d" config-ref="Database_Config" table="STUDENTS" watermarkColumn="STUDENT_ID" idColumn="STUDENT_ID" fetchSize="1" maxRows="5">
+			<scheduling-strategy >
+				<fixed-frequency frequency="3" timeUnit="MINUTES" />
+			</scheduling-strategy>
+		</db:listener>
+		<ee:transform doc:name="Transform Message" doc:id="f3874276-67f4-40b7-9efc-6b449f670903" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=false
+---
+[payload]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="9c3207fd-bc55-43b3-8db2-42c33738e1ee" config-ref="File_Config" path="dbtofile.csv" mode="APPEND"/>
+	</flow>
+</mule>
