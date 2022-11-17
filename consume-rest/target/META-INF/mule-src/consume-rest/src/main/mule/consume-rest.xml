@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="4db1bb89-a5cb-48b4-85b7-7c5c993df6f3" >
+		<http:listener-connection host="0.0.0.0" port="9081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="2bad7dc1-71eb-4ed8-a585-4b1e8932a533" basePath="/rest">
+		<http:request-connection host="localhost" port="7070" />
+	</http:request-config>
+	<flow name="consume-restFlow" doc:id="57b58cc6-4fae-4030-983a-e3da0385f70d" >
+		<http:listener doc:name="Listener" doc:id="80c4cd7e-3008-4951-a6f9-d440fac956ed" config-ref="HTTP_Listener_config" path="/rest/products"/>
+		<set-variable value="#[attributes.queryParams.productName]" doc:name="Set Variable" doc:id="405e4585-b8e2-4e3c-bb19-9a5911c0fe02" variableName="uriParamVar"/>
+		<choice doc:name="Choice" doc:id="34e83cd4-e270-42c7-92d1-5188e06e293f" >
+			<when expression="#[attributes.method =='GET' and vars.uriParamVar == null]">
+				<flow-ref doc:name="getallproducts" doc:id="360a36b5-21f3-40ab-99bc-ee673179469c" name="getallproducts"/>
+			</when>
+			<when expression="#[attributes.method =='GET' and vars.uriParamVar != null]">
+				<flow-ref doc:name="getproductsbyname" doc:id="acddd209-1962-4119-a9e1-0c124d9b4210" name="getproductsbyname"/>
+			</when>
+			<otherwise>
+				<flow-ref doc:name="addProduct" doc:id="0477401e-3a69-4da2-a282-532847c457a3" name="addproduct"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="getallproducts" doc:id="5f862e1c-2a8f-45e9-8a51-ff241ef8cb60" >
+		<http:request method="GET" doc:name="Request" doc:id="cad43260-175e-46c7-999d-afd4b85c010c" config-ref="HTTP_Request_configuration" path="/products"/>
+	</flow>
+	<flow name="getproductsbyname" doc:id="cfc0e9b4-f8e5-43fb-a884-c87ed1d7ab14" >
+		<http:request method="GET" doc:name="Request" doc:id="1dc52609-6669-4b18-8260-602e27752364" config-ref="HTTP_Request_configuration" path="/products/{productName}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	productName : attributes.queryParams.productName
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="addproduct" doc:id="83d2e4dd-17b8-4faf-adc4-fe72e87feb63" >
+		<http:request method="POST" doc:name="Request" doc:id="9f95a2e2-ba2f-4e66-8d5f-90976ab559f0" config-ref="HTTP_Request_configuration" path="/products" outputMimeType="application/json">
+		</http:request>
+		<set-payload value="#[output application/json
+---
+{ 
+	message : 'Product added successfully'
+}]" doc:name="Set Payload" doc:id="ac92351a-322e-4a92-b769-e848f6a68473" />
+	</flow>
+</mule>
